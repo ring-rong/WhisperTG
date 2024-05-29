@@ -1,0 +1,4 @@
+aiogram
+openai-whisper
+ffmpeg-python
+pymongo
