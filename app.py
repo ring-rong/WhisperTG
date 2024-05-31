@@ -6,8 +6,10 @@ from aiogram import F
 from config import Config
 from gradio_client import Client
 
+WHISPER_MIBOT_TOKEN = os.getenv('WHISPER_MIBOT_TOKEN')
+
 # Initialize bot
-bot = Bot(token=Config.WHISPER_MIBOT_TOKEN)
+bot = Bot(token=WHISPER_MIBOT_TOKEN)
 dp = Dispatcher()
 print("bot started")
 
