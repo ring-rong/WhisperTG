@@ -1,13 +1,8 @@
 import asyncio
 import os
-import pathlib
-import requests
-import ffmpeg
-import pymongo
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram import F
-from db.utils import register_message, send_long_message
 from config import Config
 from gradio_client import Client
 
@@ -18,8 +13,8 @@ dp = Dispatcher()
 print("bot started")
 
 # Delete existing webhook
-response = requests.get(f"https://api.telegram.org/bot{Config.WHISPER_MIBOT_TOKEN}/deleteWebhook")
-if response.status_code == 200:
+response = await bot.delete_webhook()
+if response:
     print("Webhook deleted successfully.")
 else:
     print("Failed to delete webhook.")
@@ -33,27 +28,22 @@ async def command_start(message: types.Message):
     await message.answer(f"start command. Chat id: {message.chat.id}")
 
 @dp.message(Command("id"))
-@register_message
 async def command_id(message: types.Message):
     await message.reply(f"chat id: {message.chat.id}\nuser_id: {message.from_user.id}")
 
 @dp.message(Command("help"))
-@register_message
 async def help_command(message: types.Message):
     await message.reply("Бот для получения текста из аудио")
 
 @dp.message(F.text)
-@register_message
 async def get_text(message: types.Message):
     await message.reply(f"Не понимаю: {message.text}\nНаберите команду `/help` для справки")
 
 @dp.message(F.voice)
 @dp.message(F.audio)
-@register_message
 async def get_audio(message: types.Message):
     voice_object = message.voice or message.audio
     voice_file_path = await bot.download(voice_object)
-
     mess = await message.reply("Processing audio to text...")
     try:
         result = whisper_api_client.predict(
@@ -68,8 +58,16 @@ async def get_audio(message: types.Message):
     finally:
         await mess.delete()
         os.remove(voice_file_path)  # Remove the downloaded file
-
+    
     await send_long_message(message, text)
+
+async def send_long_message(message: types.Message, text: str, max_symbols: int = 4000):
+    if len(text) < max_symbols:
+        await message.reply(text or "-")
+    else:
+        for i in range(0, len(text), max_symbols):
+            t = text[i : i + 4000]
+            await message.answer(text=t)
 
 async def main():
     await dp.start_polling(bot)
