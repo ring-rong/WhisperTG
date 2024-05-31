@@ -4,9 +4,9 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram import F
 from gradio_client import Client
+from tempfile import NamedTemporaryFile
 
 WHISPER_MIBOT_TOKEN = os.getenv('WHISPER_MIBOT_TOKEN')
-
 # Initialize bot
 bot = Bot(token=WHISPER_MIBOT_TOKEN)
 dp = Dispatcher()
@@ -36,23 +36,25 @@ async def get_text(message: types.Message):
 @dp.message(F.audio)
 async def get_audio(message: types.Message):
     voice_object = message.voice or message.audio
-    voice_file_path = await bot.download(voice_object)
-    mess = await message.reply("Processing audio to text...")
-    try:
-        result = whisper_api_client.predict(
-            voice_file_path,
-            "transcribe",
-            api_name="/predict"
-        )
-        text = result[0]
-    except Exception as E:
-        await message.reply("Error: Cannot extract text.")
-        raise E
-    finally:
-        await mess.delete()
-        os.remove(voice_file_path)  # Remove the downloaded file
-    
-    await send_long_message(message, text)
+    with NamedTemporaryFile(delete=False) as temp_file:
+        voice_file_path = temp_file.name
+        await bot.download(voice_object, destination=voice_file_path)
+        mess = await message.reply("Processing audio to text...")
+        try:
+            result = whisper_api_client.predict(
+                voice_file_path,
+                "transcribe",
+                api_name="/predict"
+            )
+            text = result[0]
+        except Exception as E:
+            await message.reply("Error: Cannot extract text.")
+            raise E
+        finally:
+            await mess.delete()
+            os.remove(voice_file_path)  # Remove the temporary file
+        
+        await send_long_message(message, text)
 
 async def send_long_message(message: types.Message, text: str, max_symbols: int = 4000):
     if len(text) < max_symbols:
