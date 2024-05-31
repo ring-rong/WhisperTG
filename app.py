@@ -10,7 +10,7 @@ WHISPER_MIBOT_TOKEN = os.getenv('WHISPER_MIBOT_TOKEN')
 # Initialize bot
 bot = Bot(token=WHISPER_MIBOT_TOKEN)
 dp = Dispatcher()
-print("bot started")
+print("Bot started")
 
 # Initialize Whisper API client
 whisper_api_client = Client("https://openai-whisper.hf.space/")
@@ -37,17 +37,23 @@ async def get_text(message: types.Message):
 async def get_audio(message: types.Message):
     voice_object = message.voice or message.audio
     voice_file_path = await bot.download(voice_object)
+    print(f"Audio file downloaded: {voice_file_path}")
+    
     mess = await message.reply("Processing audio to text...")
     try:
+        print("Sending request to Whisper API...")
         result = whisper_api_client.predict(
             voice_file_path,
             "transcribe",
             api_name="/predict"
         )
+        print(f"Whisper API response: {result}")
+        
         text = result
         if not text.strip():  # Проверка на пустой текст
             text = "Не удалось распознать речь в аудио"
     except Exception as E:
+        print(f"Error: {str(E)}")
         await message.reply("Error: Cannot extract text.")
         raise E
     finally:
