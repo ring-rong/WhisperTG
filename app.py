@@ -36,27 +36,25 @@ async def get_text(message: types.Message):
 @dp.message(F.audio)
 async def get_audio(message: types.Message):
     voice_object = message.voice or message.audio
-    with NamedTemporaryFile(delete=False) as temp_file:
-        voice_file_path = temp_file.name
-        await bot.download(voice_object, destination=voice_file_path)
-        mess = await message.reply("Processing audio to text...")
-        try:
-            result = whisper_api_client.predict(
-                voice_file_path,
-                "transcribe",
-                api_name="/predict"
-            )
-            text = result[0]
-            if not text.strip():  # Проверка на пустой текст
-                text = "Не удалось распознать речь в аудио"
-        except Exception as E:
-            await message.reply("Error: Cannot extract text.")
-            raise E
-        finally:
-            await mess.delete()
-            os.remove(voice_file_path)  # Remove the temporary file
-        
-        await send_long_message(message, text)
+    voice_file_path = await bot.download(voice_object)
+    mess = await message.reply("Processing audio to text...")
+    try:
+        result = whisper_api_client.predict(
+            voice_file_path,
+            "transcribe",
+            api_name="/predict"
+        )
+        text = result
+        if not text.strip():  # Проверка на пустой текст
+            text = "Не удалось распознать речь в аудио"
+    except Exception as E:
+        await message.reply("Error: Cannot extract text.")
+        raise E
+    finally:
+        await mess.delete()
+        os.remove(voice_file_path)  # Remove the downloaded file
+    
+    await send_long_message(message, text)
 
 async def send_long_message(message: types.Message, text: str, max_symbols: int = 4000):
     if not text.strip():  # Проверка на пустой текст
