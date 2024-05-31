@@ -13,7 +13,7 @@ dp = Dispatcher()
 print("bot started")
 
 # Initialize Whisper API client
-whisper_api_client = Client("https://openai-whisper.hf.space/")
+whisper_api_client = Client("https://ring23-whisper123.hf.space/")
 
 # Command handlers
 @dp.message(Command("start"))
