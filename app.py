@@ -47,6 +47,8 @@ async def get_audio(message: types.Message):
                 api_name="/predict"
             )
             text = result[0]
+            if not text.strip():  # Проверка на пустой текст
+                text = "Не удалось распознать речь в аудио"
         except Exception as E:
             await message.reply("Error: Cannot extract text.")
             raise E
@@ -57,8 +59,10 @@ async def get_audio(message: types.Message):
         await send_long_message(message, text)
 
 async def send_long_message(message: types.Message, text: str, max_symbols: int = 4000):
-    if len(text) < max_symbols:
-        await message.reply(text or "-")
+    if not text.strip():  # Проверка на пустой текст
+        await message.reply("Нет распознанного текста")
+    elif len(text) < max_symbols:
+        await message.reply(text)
     else:
         for i in range(0, len(text), max_symbols):
             t = text[i : i + 4000]
