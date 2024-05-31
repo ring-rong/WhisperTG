@@ -1,10 +1,11 @@
 import asyncio
 import os
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters.command import Command
+from aiogram.filters import Command, ~F.voice & ~F.audio & ~F.video
 from aiogram import F
 from gradio_client import Client
 from tempfile import NamedTemporaryFile
+from moviepy.editor import VideoFileClip
 
 WHISPER_MIBOT_TOKEN = os.getenv('WHISPER_MIBOT_TOKEN')
 # Initialize bot
@@ -26,11 +27,11 @@ async def command_id(message: types.Message):
 
 @dp.message(Command("help"))
 async def help_command(message: types.Message):
-    await message.reply("Бот для получения текста из аудио")
+    await message.reply("Бот для получения текста из аудио и видео")
 
-# @dp.message(F.text)
-# async def get_text(message: types.Message):
-#     await message.reply(f"Не понимаю: {message.text}\nНаберите команду `/help` для справки")
+@dp.message(~F.voice & ~F.audio & ~F.video)
+async def get_text(message: types.Message):
+    await message.reply(f"Не понимаю: {message.text}\nНаберите команду `/help` для справки")
 
 @dp.message(F.voice)
 @dp.message(F.audio)
@@ -40,27 +41,46 @@ async def get_audio(message: types.Message):
         voice_file_path = temp_file.name
         await bot.download(voice_object.file_id, destination=voice_file_path)
         print(f"Audio file downloaded: {voice_file_path}")
+        await process_audio(message, voice_file_path)
+
+@dp.message(F.video)
+async def get_video(message: types.Message):
+    video_object = message.video
+    with NamedTemporaryFile(delete=False, suffix=".mp4") as temp_file:
+        video_file_path = temp_file.name
+        await bot.download(video_object.file_id, destination=video_file_path)
+        print(f"Video file downloaded: {video_file_path}")
         
-        mess = await message.reply("Processing audio to text...")
-        try:
-            print("Sending request to Whisper API...")
-            result = whisper_api_client.predict(
-                voice_file_path,
-                "transcribe",
-                api_name="/predict"
-            )
-            print(f"Whisper API response: {result}")
-            
-            text = result
-            if not text.strip():  # Проверка на пустой текст
-                text = "Не удалось распознать речь в аудио"
-        except Exception as E:
-            print(f"Error: {str(E)}")
-            await message.reply("Error: Cannot extract text.")
-            raise E
-        finally:
-            await mess.delete()
-            os.remove(voice_file_path)  # Remove the downloaded file
+        with NamedTemporaryFile(delete=False, suffix=".wav") as audio_file:
+            audio_file_path = audio_file.name
+            video = VideoFileClip(video_file_path)
+            video.audio.write_audiofile(audio_file_path)
+            video.close()
+            await process_audio(message, audio_file_path)
+        
+        os.remove(video_file_path)
+
+async def process_audio(message: types.Message, audio_file_path: str):
+    mess = await message.reply("Processing audio to text...")
+    try:
+        print("Sending request to Whisper API...")
+        result = whisper_api_client.predict(
+            audio_file_path,
+            "transcribe",
+            api_name="/predict"
+        )
+        print(f"Whisper API response: {result}")
+        
+        text = result
+        if not text.strip():  # Проверка на пустой текст
+            text = "Не удалось распознать речь в аудио"
+    except Exception as E:
+        print(f"Error: {str(E)}")
+        await message.reply("Error: Cannot extract text.")
+        raise E
+    finally:
+        await mess.delete()
+        os.remove(audio_file_path)  # Remove the downloaded file
     
     await send_long_message(message, text)
 
