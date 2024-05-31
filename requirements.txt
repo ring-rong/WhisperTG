@@ -1,4 +1,4 @@
 aiogram
-openai-whisper
+gradio_client
 ffmpeg-python
 pymongo
