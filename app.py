@@ -3,7 +3,6 @@ import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram import F
-from config import Config
 from gradio_client import Client
 
 WHISPER_MIBOT_TOKEN = os.getenv('WHISPER_MIBOT_TOKEN')
