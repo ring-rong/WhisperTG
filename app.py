@@ -28,9 +28,9 @@ async def command_id(message: types.Message):
 async def help_command(message: types.Message):
     await message.reply("Бот для получения текста из аудио")
 
-@dp.message(F.text)
-async def get_text(message: types.Message):
-    await message.reply(f"Не понимаю: {message.text}\nНаберите команду `/help` для справки")
+# @dp.message(F.text)
+# async def get_text(message: types.Message):
+#     await message.reply(f"Не понимаю: {message.text}\nНаберите команду `/help` для справки")
 
 @dp.message(F.voice)
 @dp.message(F.audio)
