@@ -36,29 +36,31 @@ async def get_text(message: types.Message):
 @dp.message(F.audio)
 async def get_audio(message: types.Message):
     voice_object = message.voice or message.audio
-    voice_file_path = await bot.download(voice_object)
-    print(f"Audio file downloaded: {voice_file_path}")
-    
-    mess = await message.reply("Processing audio to text...")
-    try:
-        print("Sending request to Whisper API...")
-        result = whisper_api_client.predict(
-            voice_file_path,
-            "transcribe",
-            api_name="/predict"
-        )
-        print(f"Whisper API response: {result}")
+    with NamedTemporaryFile(delete=False) as temp_file:
+        voice_file_path = temp_file.name
+        await voice_object.download(destination=voice_file_path)
+        print(f"Audio file downloaded: {voice_file_path}")
         
-        text = result
-        if not text.strip():  # Проверка на пустой текст
-            text = "Не удалось распознать речь в аудио"
-    except Exception as E:
-        print(f"Error: {str(E)}")
-        await message.reply("Error: Cannot extract text.")
-        raise E
-    finally:
-        await mess.delete()
-        os.remove(voice_file_path)  # Remove the downloaded file
+        mess = await message.reply("Processing audio to text...")
+        try:
+            print("Sending request to Whisper API...")
+            result = whisper_api_client.predict(
+                voice_file_path,
+                "transcribe",
+                api_name="/predict"
+            )
+            print(f"Whisper API response: {result}")
+            
+            text = result
+            if not text.strip():  # Проверка на пустой текст
+                text = "Не удалось распознать речь в аудио"
+        except Exception as E:
+            print(f"Error: {str(E)}")
+            await message.reply("Error: Cannot extract text.")
+            raise E
+        finally:
+            await mess.delete()
+            os.remove(voice_file_path)  # Remove the downloaded file
     
     await send_long_message(message, text)
 
