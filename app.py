@@ -2,32 +2,12 @@ import asyncio
 import os
 import pathlib
 import requests
-
-import ffmpeg
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram import F
-
-import torch
-import whisper
-
-from db.utils import video_decoding, register_message, send_long_message, get_translate
+from db.utils import register_message, send_long_message
 from config import Config
-
-# Directory configuration
-voice_dir = Config.dirs.get("voice") or "./voice"
-audio_dir = Config.dirs.get("audio") or "./audio"
-models_dir = Config.dirs.get("models") or "./models"
-video_dir = Config.dirs.get("video") or "./video"
-
-# Device configuration
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print("Loading model...")
-
-# Load Whisper model
-model = whisper.load_model(Config.model, device=device, download_root=models_dir)
-print(f"{'Multilingual ' if model.is_multilingual else 'English '}{Config.model} model loaded.")
+from gradio_client import Client
 
 # Initialize bot
 bot = Bot(token=Config.WHISPER_MIBOT_TOKEN)
@@ -41,6 +21,9 @@ if response.status_code == 200:
     print("Webhook deleted successfully.")
 else:
     print("Failed to delete webhook.")
+
+# Initialize Whisper API client
+whisper_api_client = Client("https://openai-whisper.hf.space/")
 
 # Command handlers
 @dp.message(Command("start"))
@@ -67,67 +50,23 @@ async def get_text(message: types.Message):
 @register_message
 async def get_audio(message: types.Message):
     voice_object = message.voice or message.audio
-    pathlib.Path(audio_dir).mkdir(parents=True, exist_ok=True)
-    filename = os.path.join(audio_dir, f"{voice_object.file_unique_id}")
-
-    mess = await message.reply("Downloading file...")
-    try:
-        await bot.download(voice_object, destination=filename)
-    except Exception as E:
-        await message.reply(f"Error: Cannot download file.\n{E}")
-        raise E
-    finally:
-        await mess.delete()
+    voice_file_path = await bot.download(voice_object)
 
     mess = await message.reply("Processing audio to text...")
     try:
-        text = get_translate(model, filename)
+        result = whisper_api_client.predict(
+            voice_file_path,
+            "transcribe",
+            api_name="/predict"
+        )
+        text = result[0]
     except Exception as E:
         await message.reply("Error: Cannot extract text.")
         raise E
     finally:
         await mess.delete()
-    await send_long_message(message, text)
+        os.remove(voice_file_path)  # Remove the downloaded file
 
-@dp.message(F.video)
-@dp.message(F.video_note)
-@dp.message(F.document)
-@register_message
-async def get_video_like(message: types.Message):
-    pathlib.Path(video_dir).mkdir(parents=True, exist_ok=True)
-    object = message.video or message.video_note or message.document
-
-    filename = os.path.join(video_dir, f"{object.file_unique_id}")
-
-    mess = await message.reply("Downloading file...")
-    try:
-        await bot.download(object, destination=filename)
-    except Exception as E:
-        await message.reply(f"Error: Cannot download file.\n{E}")
-        raise E
-    finally:
-        await mess.delete()
-
-    output_filename = filename
-    if message.document:
-        mess = await message.reply("Extracting audio...")
-        output_filename = os.path.join(video_dir, f"{object.file_unique_id}.ogg")
-        try:
-            video_decoding(filename, output_filename)
-        except Exception as E:
-            await message.reply(f"Error: Cannot extract audio.\n{E}")
-            raise E
-        finally:
-            await mess.delete()
-
-    mess = await message.reply("Processing audio to text...")
-    try:
-        text = get_translate(model, output_filename)
-    except Exception as E:
-        await message.reply("Error: Cannot extract text.")
-        raise E
-    finally:
-        await mess.delete()
     await send_long_message(message, text)
 
 async def main():
