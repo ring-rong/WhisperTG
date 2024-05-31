@@ -2,6 +2,7 @@ import asyncio
 import os
 import pathlib
 import requests
+import ffmpeg
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from aiogram import F
