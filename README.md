@@ -81,7 +81,7 @@ WantedBy=multi-user.target
 WHISPER_MIBOT_TOKEN=<bot_token>
 ```
 
-Далее включить и запустить сервис командами:
+Далее включить и запустить сервис командами
 ```shell
 sudo systemctl enable whisper-mibot.service
 sudo systemctl start whisper-mibot.service
