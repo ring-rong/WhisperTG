@@ -9,15 +9,7 @@ from gradio_client import Client
 # Initialize bot
 bot = Bot(token=Config.WHISPER_MIBOT_TOKEN)
 dp = Dispatcher()
-
 print("bot started")
-
-# Delete existing webhook
-response = await bot.delete_webhook()
-if response:
-    print("Webhook deleted successfully.")
-else:
-    print("Failed to delete webhook.")
 
 # Initialize Whisper API client
 whisper_api_client = Client("https://openai-whisper.hf.space/")
