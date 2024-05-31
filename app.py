@@ -38,7 +38,7 @@ async def get_audio(message: types.Message):
     voice_object = message.voice or message.audio
     with NamedTemporaryFile(delete=False) as temp_file:
         voice_file_path = temp_file.name
-        await voice_object.download(destination=voice_file_path)
+        await bot.download(voice_object.file_id, destination=voice_file_path)
         print(f"Audio file downloaded: {voice_file_path}")
         
         mess = await message.reply("Processing audio to text...")
