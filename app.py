@@ -1,11 +1,15 @@
 import asyncio
 import os
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command, ~F.voice & ~F.audio & ~F.video
+from aiogram.filters import Command, Filter
 from aiogram import F
 from gradio_client import Client
 from tempfile import NamedTemporaryFile
 from moviepy.editor import VideoFileClip
+
+class NonMediaFilter(Filter):
+    async def __call__(self, message: types.Message) -> bool:
+        return not message.voice and not message.audio and not message.video
 
 WHISPER_MIBOT_TOKEN = os.getenv('WHISPER_MIBOT_TOKEN')
 # Initialize bot
@@ -29,7 +33,7 @@ async def command_id(message: types.Message):
 async def help_command(message: types.Message):
     await message.reply("Бот для получения текста из аудио и видео")
 
-@dp.message(~F.voice & ~F.audio & ~F.video)
+@dp.message(NonMediaFilter())
 async def get_text(message: types.Message):
     await message.reply(f"Не понимаю: {message.text}\nНаберите команду `/help` для справки")
 
