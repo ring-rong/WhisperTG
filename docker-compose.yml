@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  whispergram:
+    build: .
+    container_name: whispertg
+    restart: always
+    environment:
+      - WHISPER_MIBOT_TOKEN=123153416544
+    volumes:
+      - ./data:/app/data
