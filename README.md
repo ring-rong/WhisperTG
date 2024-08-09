@@ -38,6 +38,11 @@ pip3 install -r requirements.txt
 python3 app.py
 ```
 
+### Docker
+```shell
+docker-compose up -d --build
+```
+
 ## Дополнительно
 ### Настройки модели
 В файле `config.py` можно выбрать модель, которая будет использоваться для распознавания речи.
